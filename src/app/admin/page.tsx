@@ -2,7 +2,7 @@
 
 import { trpc } from "@/trpc/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Video, MessageSquare, Eye, Ban, Clock, AlertTriangle, Shield, Brain } from "lucide-react";
+import { Users, Video, MessageSquare, Eye, Ban, Clock, AlertTriangle, Shield, Brain, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminDashboard() {
@@ -35,6 +35,7 @@ export default function AdminDashboard() {
       icon: Users,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
+      href: "/admin/users",
     },
     {
       title: "Total Videos",
@@ -42,6 +43,7 @@ export default function AdminDashboard() {
       icon: Video,
       color: "text-green-600",
       bgColor: "bg-green-100",
+      href: "/admin/videos",
     },
     {
       title: "Total Comments",
@@ -49,6 +51,7 @@ export default function AdminDashboard() {
       icon: MessageSquare,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
+      href: "/admin/comments",
     },
     {
       title: "Total Views",
@@ -56,6 +59,7 @@ export default function AdminDashboard() {
       icon: Eye,
       color: "text-orange-600",
       bgColor: "bg-orange-100",
+      href: null,
     },
     {
       title: "Banned Users",
@@ -63,6 +67,7 @@ export default function AdminDashboard() {
       icon: Ban,
       color: "text-red-600",
       bgColor: "bg-red-100",
+      href: "/admin/users/banned",
     },
     {
       title: "Pending Videos",
@@ -70,6 +75,7 @@ export default function AdminDashboard() {
       icon: Clock,
       color: "text-yellow-600",
       bgColor: "bg-yellow-100",
+      href: "/admin/videos/pending",
     },
     {
       title: "NSFW Flagged",
@@ -77,6 +83,7 @@ export default function AdminDashboard() {
       icon: AlertTriangle,
       color: "text-pink-600",
       bgColor: "bg-pink-100",
+      href: "/admin/videos/nsfw",
     },
     {
       title: "Toxic Comments",
@@ -84,6 +91,7 @@ export default function AdminDashboard() {
       icon: Shield,
       color: "text-rose-600",
       bgColor: "bg-rose-100",
+      href: "/admin/comments/toxic",
     },
     {
       title: "Auto-Hidden",
@@ -91,6 +99,7 @@ export default function AdminDashboard() {
       icon: Brain,
       color: "text-violet-600",
       bgColor: "bg-violet-100",
+      href: "/admin/comments/hidden",
     },
   ];
 
@@ -104,20 +113,35 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {statCards.map((stat) => (
-          <Card key={stat.title} className="relative">
-            <CardHeader className="pb-2">
-              <div className={`text-2xl ${stat.color}`}>{<stat.icon />}</div>
-              <CardTitle className="mt-2 text-lg font-semibold">{stat.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stat.value}</div>
-            </CardContent>
-            {stat.title === "Toxic Comments" && (
-              <Link href="/admin/comments/toxic" className="absolute top-2 right-2 text-xs text-blue-600 underline">View</Link>
-            )}
-          </Card>
-        ))}
+        {statCards.map((stat) => {
+          const cardContent = (
+            <Card className={`relative transition-all duration-200 ${stat.href ? "hover:shadow-lg hover:scale-[1.02] cursor-pointer group" : ""}`}>
+              <CardHeader className="pb-2">
+                <div className={`text-2xl ${stat.color}`}>{<stat.icon />}</div>
+                <CardTitle className="mt-2 text-lg font-semibold">{stat.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-end justify-between">
+                  <div className="text-3xl font-bold">{stat.value}</div>
+                  {stat.href && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      View <ArrowRight className="h-3 w-3" />
+                    </span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+
+          if (stat.href) {
+            return (
+              <Link key={stat.title} href={stat.href} className="block">
+                {cardContent}
+              </Link>
+            );
+          }
+          return <div key={stat.title}>{cardContent}</div>;
+        })}
       </div>
 
       {/* Quick Actions */}

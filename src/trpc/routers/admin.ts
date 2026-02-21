@@ -320,4 +320,152 @@ export const adminRouter = createTRPCRouter({
         .where(eq(comments.id, input.id));
       return { success: true };
     }),
+
+  // Get all comments with pagination
+  getAllComments: adminProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(200).default(50),
+      offset: z.number().default(0),
+      search: z.string().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const conditions = [];
+      if (input.search) {
+        conditions.push(like(comments.content, `%${input.search}%`));
+      }
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const rows = await ctx.db
+        .select({
+          id: comments.id,
+          content: comments.content,
+          createdAt: comments.createdAt,
+          isToxic: comments.isToxic,
+          isHidden: comments.isHidden,
+          toxicityScore: comments.toxicityScore,
+          user: { id: users.id, name: users.name, imageURL: users.imageURL },
+          video: { id: videos.id, title: videos.title },
+        })
+        .from(comments)
+        .innerJoin(users, eq(comments.userId, users.id))
+        .innerJoin(videos, eq(comments.videoId, videos.id))
+        .where(whereClause)
+        .orderBy(desc(comments.createdAt))
+        .limit(input.limit)
+        .offset(input.offset);
+
+      const [total] = await ctx.db
+        .select({ count: sql<number>`count(*)` })
+        .from(comments)
+        .where(whereClause);
+
+      return { comments: rows, total: Number(total?.count ?? 0) };
+    }),
+
+  // Get auto-hidden comments
+  getHiddenComments: adminProcedure
+    .input(z.object({ limit: z.number().min(1).max(200).default(100) }))
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.db
+        .select({
+          id: comments.id,
+          content: comments.content,
+          createdAt: comments.createdAt,
+          isToxic: comments.isToxic,
+          isHidden: comments.isHidden,
+          toxicityScore: comments.toxicityScore,
+          user: { id: users.id, name: users.name, imageURL: users.imageURL },
+          video: { id: videos.id, title: videos.title },
+        })
+        .from(comments)
+        .innerJoin(users, eq(comments.userId, users.id))
+        .innerJoin(videos, eq(comments.videoId, videos.id))
+        .where(eq(comments.isHidden, true))
+        .orderBy(desc(comments.createdAt))
+        .limit(input.limit);
+      return { comments: rows };
+    }),
+
+  // Unhide a comment
+  unhideComment: adminProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(comments)
+        .set({ isHidden: false })
+        .where(eq(comments.id, input.id));
+      return { success: true };
+    }),
+
+  // Get banned users
+  getBannedUsers: adminProcedure
+    .input(z.object({ limit: z.number().min(1).max(200).default(50) }))
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.db
+        .select()
+        .from(users)
+        .where(eq(users.isBanned, true))
+        .orderBy(desc(users.updatedAt))
+        .limit(input.limit);
+      return { users: rows };
+    }),
+
+  // Get pending videos
+  getPendingVideos: adminProcedure
+    .input(z.object({ limit: z.number().min(1).max(200).default(50) }))
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.db
+        .select({
+          id: videos.id,
+          title: videos.title,
+          description: videos.description,
+          thumbnailURL: videos.thumbnailURL,
+          status: videos.status,
+          visibility: videos.visibility,
+          viewCount: videos.viewCount,
+          createdAt: videos.createdAt,
+          user: { id: users.id, name: users.name, imageURL: users.imageURL },
+        })
+        .from(videos)
+        .innerJoin(users, eq(videos.userId, users.id))
+        .where(eq(videos.status, "pending"))
+        .orderBy(desc(videos.createdAt))
+        .limit(input.limit);
+      return { videos: rows };
+    }),
+
+  // Get NSFW flagged videos
+  getNsfwVideos: adminProcedure
+    .input(z.object({ limit: z.number().min(1).max(200).default(50) }))
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.db
+        .select({
+          id: videos.id,
+          title: videos.title,
+          description: videos.description,
+          thumbnailURL: videos.thumbnailURL,
+          status: videos.status,
+          isNsfw: videos.isNsfw,
+          viewCount: videos.viewCount,
+          createdAt: videos.createdAt,
+          user: { id: users.id, name: users.name, imageURL: users.imageURL },
+        })
+        .from(videos)
+        .innerJoin(users, eq(videos.userId, users.id))
+        .where(eq(videos.isNsfw, true))
+        .orderBy(desc(videos.createdAt))
+        .limit(input.limit);
+      return { videos: rows };
+    }),
+
+  // Toggle NSFW flag on a video
+  toggleNsfw: adminProcedure
+    .input(z.object({ videoId: z.string().uuid(), isNsfw: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(videos)
+        .set({ isNsfw: input.isNsfw, updatedAt: new Date() })
+        .where(eq(videos.id, input.videoId));
+      return { success: true };
+    }),
 });
