@@ -16,6 +16,9 @@ import {
   ImageIcon,
   FileText,
   Loader2,
+  MessageSquare,
+  Heart,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +32,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@clerk/nextjs";
 
 function formatViewCount(count: number): string {
@@ -203,6 +208,17 @@ export default function ChannelPage() {
     },
   });
 
+  const { data: communityPosts } = trpc.community.getByChannel.useQuery(
+    { userId, limit: 20 },
+    { enabled: !!userId }
+  );
+
+  const toggleLike = trpc.community.toggleLike.useMutation({
+    onSuccess: () => {
+      utils.community.getByChannel.invalidate({ userId });
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="max-w-5xl mx-auto">
@@ -230,7 +246,7 @@ export default function ChannelPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6">
       {/* Banner */}
       <div className="relative w-full h-44 overflow-hidden">
         {channel.bannerURL ? (
@@ -307,60 +323,155 @@ export default function ChannelPage() {
         )}
       </div>
 
-      {/* Videos Grid */}
+      {/* Tabs: Videos & Community */}
       <div className="px-6 pb-8">
-        <h2 className="font-semibold text-sm mb-4 flex items-center gap-2">
-          <PlayCircle className="h-4 w-4 text-primary" />
-          Videos
-        </h2>
-        {channel.videos.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-12">
-            This channel has no videos yet.
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-4 gap-y-6">
-            {channel.videos.map((video, i) => (
-              <Link
-                key={video.id}
-                href={`/feed/${video.id}`}
-                className="group card-animate"
-                style={{ animationDelay: `${i * 0.04}s` }}
-              >
-                <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-2">
-                  {video.thumbnailURL ? (
-                    <Image
-                      src={video.thumbnailURL}
-                      alt={video.title}
-                      fill
-                      className="object-cover group-hover:scale-[1.03] transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-muted">
-                      <span className="text-muted-foreground font-bold text-lg">
-                        {video.title[0]?.toUpperCase()}
+        <Tabs defaultValue="videos">
+          <TabsList className="bg-muted mb-6">
+            <TabsTrigger value="videos" className="gap-1.5">
+              <PlayCircle className="h-4 w-4" />
+              Videos
+            </TabsTrigger>
+            <TabsTrigger value="community" className="gap-1.5">
+              <MessageSquare className="h-4 w-4" />
+              Community
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="videos">
+            {channel.videos.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-12">
+                This channel has no videos yet.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-4 gap-y-6">
+                {channel.videos.map((video, i) => (
+                  <Link
+                    key={video.id}
+                    href={`/feed/${video.id}`}
+                    className="group card-animate"
+                    style={{ animationDelay: `${i * 0.04}s` }}
+                  >
+                    <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-2">
+                      {video.thumbnailURL ? (
+                        <Image
+                          src={video.thumbnailURL}
+                          alt={video.title}
+                          fill
+                          className="object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-muted">
+                          <span className="text-muted-foreground font-bold text-lg">
+                            {video.title[0]?.toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <h3 className="text-[13px] font-medium line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                      {video.title}
+                    </h3>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                      <span className="flex items-center gap-0.5">
+                        <Eye className="h-3 w-3" />
+                        {formatViewCount(video.viewCount)} views
+                      </span>
+                      <span>·</span>
+                      <span>
+                        {formatDistanceToNow(new Date(video.createdAt), {
+                          addSuffix: true,
+                        })}
                       </span>
                     </div>
-                  )}
-                </div>
-                <h3 className="text-[13px] font-medium line-clamp-2 leading-snug group-hover:text-primary transition-colors">
-                  {video.title}
-                </h3>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                  <span className="flex items-center gap-0.5">
-                    <Eye className="h-3 w-3" />
-                    {formatViewCount(video.viewCount)} views
-                  </span>
-                  <span>·</span>
-                  <span>
-                    {formatDistanceToNow(new Date(video.createdAt), {
-                      addSuffix: true,
-                    })}
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="community">
+            {!communityPosts || communityPosts.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-12">
+                No community posts yet.
+              </p>
+            ) : (
+              <div className="space-y-4 max-w-2xl">
+                {communityPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="glass-card border-border/50 rounded-xl p-5"
+                  >
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-10 w-10 rounded-full">
+                        <AvatarImage src={post.user.imageURL} />
+                        <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                          {post.user.name[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold">{post.user.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+                          </span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap break-words">
+                          {post.content}
+                        </p>
+                        {post.imageURL && (
+                          <div className="mt-3 rounded-lg overflow-hidden max-w-md">
+                            <Image
+                              src={post.imageURL}
+                              alt="Post image"
+                              width={400}
+                              height={300}
+                              className="object-cover w-full"
+                            />
+                          </div>
+                        )}
+                        {post.type === "poll" && post.pollOptions.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {post.pollOptions.map((opt) => {
+                              const totalVotes = post.pollOptions.reduce((s, o) => s + o.voteCount, 0);
+                              const pct = totalVotes > 0 ? Math.round((opt.voteCount / totalVotes) * 100) : 0;
+                              return (
+                                <div key={opt.id} className="relative">
+                                  <div
+                                    className="absolute inset-0 rounded-lg bg-primary/10"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                  <div className="relative flex items-center justify-between px-3 py-2 rounded-lg border border-border/50 text-sm">
+                                    <span>{opt.text}</span>
+                                    <span className="text-xs text-muted-foreground font-medium">{pct}%</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            <p className="text-xs text-muted-foreground">
+                              {post.pollOptions.reduce((s, o) => s + o.voteCount, 0)} votes
+                            </p>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-4 mt-3">
+                          <button
+                            onClick={() => toggleLike.mutate({ postId: post.id })}
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <Heart className="h-4 w-4" />
+                            {post.likeCount > 0 && post.likeCount}
+                          </button>
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <MessageSquare className="h-4 w-4" />
+                            {post.commentCount > 0 && post.commentCount}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

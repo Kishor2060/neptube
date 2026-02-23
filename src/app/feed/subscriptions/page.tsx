@@ -21,7 +21,7 @@ function SubscriptionsFeed() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Skeleton className="h-8 w-48 mb-6" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
           {[...Array(8)].map((_, i) => (
@@ -60,7 +60,7 @@ function SubscriptionsFeed() {
   }
 
   return (
-    <div className="p-6">
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight gradient-text">Subscriptions</h1>
         <p className="text-sm text-muted-foreground mt-1">

@@ -32,6 +32,7 @@ import {
   Lock,
   Link as LinkIcon,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -84,11 +85,17 @@ export default function StudioPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h1 className="text-2xl font-bold tracking-tight gradient-text">Creator Studio</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Link href="/studio/ai-dashboard">
               <Button variant="outline" className="gap-2 rounded-lg">
                 <Sparkles className="h-4 w-4" />
                 AI Dashboard
+              </Button>
+            </Link>
+            <Link href="/studio/upload?type=short">
+              <Button variant="outline" className="gap-2 rounded-lg">
+                <Zap className="h-4 w-4 text-yellow-500" />
+                Upload Short
               </Button>
             </Link>
             <Link href="/studio/upload">

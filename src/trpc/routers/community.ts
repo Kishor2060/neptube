@@ -3,6 +3,7 @@ import { eq, desc, and, sql } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure, baseProcedure } from "../init";
 import { communityPosts, pollOptions, pollVotes, communityPostLikes, users, notifications, subscriptions } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
+import { analyzeToxicity, detectNsfw } from "@/lib/ai";
 
 export const communityRouter = createTRPCRouter({
   // Get posts for a channel (public)
@@ -131,6 +132,36 @@ export const communityRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      // AI moderation: check text content for toxicity/NSFW
+      try {
+        const toxicity = await analyzeToxicity(input.content);
+        if (toxicity.isToxic && toxicity.score > 0.7) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Your post was flagged by AI moderation for containing inappropriate content. Please revise and try again.",
+          });
+        }
+      } catch (err) {
+        if (err instanceof TRPCError) throw err;
+        console.error("Toxicity check failed, allowing post:", err);
+      }
+
+      // AI moderation: check image for NSFW content
+      if (input.imageURL) {
+        try {
+          const nsfwResult = await detectNsfw(input.imageURL);
+          if (nsfwResult.isNsfw) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "The image was flagged as NSFW by AI moderation. Please use a different image.",
+            });
+          }
+        } catch (err) {
+          if (err instanceof TRPCError) throw err;
+          console.error("NSFW image check failed, allowing post:", err);
+        }
+      }
+
       const newPost = await ctx.db
         .insert(communityPosts)
         .values({

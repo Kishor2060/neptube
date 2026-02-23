@@ -227,6 +227,13 @@
   border-color: hsl(0 60% 50% / 0.3);
   box-shadow: 0 4px 16px -4px hsl(0 60% 50% / 0.2);
 }
+/* Collapsed sidebar: compact the admin card */
+:is([data-collapsible="icon"]) .neptube-admin-card {
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* ──────────────── Custom Scrollbar ──────────────── */
 ::-webkit-scrollbar {

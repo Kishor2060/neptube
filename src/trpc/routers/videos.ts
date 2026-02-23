@@ -34,7 +34,7 @@ export const videosRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      const conditions = [eq(videos.visibility, "public")];
+      const conditions = [eq(videos.visibility, "public"), eq(videos.status, "published")];
 
       // Exclude videos explicitly marked as shorts — they have their own shelf
       conditions.push(
@@ -141,6 +141,7 @@ export const videosRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const conditions = [
         eq(videos.visibility, "public"),
+        eq(videos.status, "published"),
         or(
           eq(videos.isShort, true),
           and(
@@ -291,7 +292,7 @@ export const videosRouter = createTRPCRouter({
         })
         .from(videos)
         .where(
-          and(eq(videos.userId, input.userId), eq(videos.visibility, "public"))
+          and(eq(videos.userId, input.userId), eq(videos.visibility, "public"), eq(videos.status, "published"))
         )
         .orderBy(desc(videos.createdAt));
 
@@ -323,6 +324,7 @@ export const videosRouter = createTRPCRouter({
         title: z.string().min(1).max(100),
         description: z.string().max(5000).optional(),
         category: z.string().max(50).optional(),
+        tags: z.array(z.string()).max(10).optional(),
         thumbnailURL: z.string().url().optional(),
         videoURL: z.string().url().optional(),
         visibility: z.enum(["public", "private", "unlisted"]).default("public"),
@@ -340,12 +342,14 @@ export const videosRouter = createTRPCRouter({
         });
       }
 
+      const { tags: inputTags, ...restInput } = input;
       const newVideo = await ctx.db
         .insert(videos)
         .values({
-          ...input,
+          ...restInput,
+          tags: inputTags && inputTags.length > 0 ? inputTags : undefined,
           userId: ctx.user.id,
-          status: "published", // Auto-publish for demo
+          status: "pending", // Start as pending — AI moderation will approve
         })
         .returning();
 
@@ -382,15 +386,26 @@ export const videosRouter = createTRPCRouter({
             autoCategory = await autoCategorizVideo(input.title, input.description, tags);
           }
 
-          // Update video with ML results
+          // Merge user-provided tags with AI-generated tags
+          const mergedTags = Array.from(new Set([
+            ...(inputTags || []),
+            ...tags,
+          ])).slice(0, 15);
+
+          // Determine if video passes moderation
+          const passedModeration = !isNsfw;
+
+          // Update video with ML results and moderation status
           await ctx.db
             .update(videos)
             .set({
-              tags: tags.length > 0 ? tags : undefined,
+              tags: mergedTags.length > 0 ? mergedTags : undefined,
               aiSummary: aiSummary || undefined,
               category: autoCategory || undefined,
               nsfwScore,
               isNsfw,
+              status: passedModeration ? "published" : "rejected",
+              rejectionReason: isNsfw ? "Content flagged as NSFW by AI moderation" : undefined,
             })
             .where(eq(videos.id, videoId));
 
@@ -465,8 +480,8 @@ export const videosRouter = createTRPCRouter({
             }
           }
 
-          // 7. Send notification to subscribers
-          if (input.visibility === "public") {
+          // 7. Send notification to subscribers (only if moderation passed)
+          if (input.visibility === "public" && passedModeration) {
             const subs = await ctx.db
               .select({ subscriberId: subscriptions.subscriberId })
               .from(subscriptions)
@@ -879,6 +894,7 @@ export const videosRouter = createTRPCRouter({
         .where(
           and(
             eq(videos.visibility, "public"),
+            eq(videos.status, "published"),
             inArray(videos.userId, channelIds)
           )
         )
@@ -918,7 +934,7 @@ export const videosRouter = createTRPCRouter({
         })
         .from(videos)
         .innerJoin(users, eq(videos.userId, users.id))
-        .where(eq(videos.visibility, "public"))
+        .where(and(eq(videos.visibility, "public"), eq(videos.status, "published")))
         .orderBy(desc(videos.createdAt))
         .limit(100); // Get recent 100 for scoring
 
@@ -1100,7 +1116,7 @@ export const videosRouter = createTRPCRouter({
         })
         .from(videos)
         .innerJoin(users, eq(videos.userId, users.id))
-        .where(eq(videos.visibility, "public"))
+        .where(and(eq(videos.visibility, "public"), eq(videos.status, "published")))
         .orderBy(desc(videos.createdAt))
         .limit(200);
 

@@ -17,9 +17,10 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Upload, Video, ImageIcon, ArrowLeft, Loader2, CheckCircle, Sparkles, Zap } from "lucide-react";
+import { Upload, Video, ImageIcon, ArrowLeft, Loader2, CheckCircle, Sparkles, Zap, Tag, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 const categories = [
   "Entertainment",
@@ -34,6 +35,14 @@ const categories = [
   "Other",
 ];
 
+const availableTags = [
+  "Music", "Entertainment", "Educational", "Gaming", "Sports",
+  "News", "Comedy", "Technology", "Travel", "Cooking",
+  "Fitness", "Vlog", "Tutorial", "Review", "Unboxing",
+  "DIY", "Fashion", "Beauty", "Science", "History",
+  "Motivation", "Podcast", "Animation", "Art", "Nature",
+];
+
 export default function UploadVideoPage() {
   const router = useRouter();
   const [step, setStep] = useState<"upload" | "details" | "done">("upload");
@@ -43,6 +52,7 @@ export default function UploadVideoPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isShort, setIsShort] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
@@ -116,6 +126,7 @@ export default function UploadVideoPage() {
       videoURL: videoUrl,
       thumbnailURL: thumbnailUrl || undefined,
       category: category || undefined,
+      tags: selectedTags.length > 0 ? selectedTags : undefined,
       isShort,
     });
   };
@@ -291,6 +302,45 @@ export default function UploadVideoPage() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Tags */}
+                    <div>
+                      <Label className="flex items-center gap-2 mb-2">
+                        <Tag className="h-4 w-4 text-primary" />
+                        Tags <span className="text-xs text-muted-foreground">(select up to 5)</span>
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {availableTags.map((tag) => {
+                          const isSelected = selectedTags.includes(tag);
+                          return (
+                            <Badge
+                              key={tag}
+                              variant={isSelected ? "default" : "outline"}
+                              className={`cursor-pointer transition-all text-xs ${
+                                isSelected
+                                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                  : "hover:bg-accent hover:text-accent-foreground"
+                              } ${!isSelected && selectedTags.length >= 5 ? "opacity-40 cursor-not-allowed" : ""}`}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedTags(selectedTags.filter((t) => t !== tag));
+                                } else if (selectedTags.length < 5) {
+                                  setSelectedTags([...selectedTags, tag]);
+                                }
+                              }}
+                            >
+                              {tag}
+                              {isSelected && <X className="h-3 w-3 ml-1" />}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                      {selectedTags.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Selected: {selectedTags.join(", ")}
+                        </p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -430,9 +480,12 @@ export default function UploadVideoPage() {
           <Card className="text-center py-12">
             <CardContent>
               <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Video Published!</h2>
-              <p className="text-muted-foreground mb-4">
-                Your video has been uploaded successfully and is now live.
+              <h2 className="text-xl font-semibold mb-2">Video Uploaded!</h2>
+              <p className="text-muted-foreground mb-2">
+                Your video has been uploaded successfully.
+              </p>
+              <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">
+                AI moderation is reviewing your content. It will appear on the feed once approved.
               </p>
               <p className="text-sm text-muted-foreground">
                 Redirecting to your video...
