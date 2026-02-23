@@ -17,9 +17,10 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Upload, Video, ImageIcon, ArrowLeft, Loader2, CheckCircle, Sparkles, Zap } from "lucide-react";
+import { Upload, Video, ImageIcon, ArrowLeft, Loader2, CheckCircle, Sparkles, Zap, Tag, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 const categories = [
   "Entertainment",
@@ -34,6 +35,14 @@ const categories = [
   "Other",
 ];
 
+const availableTags = [
+  "Music", "Entertainment", "Educational", "Gaming", "Sports",
+  "News", "Comedy", "Technology", "Travel", "Cooking",
+  "Fitness", "Vlog", "Tutorial", "Review", "Unboxing",
+  "DIY", "Fashion", "Beauty", "Science", "History",
+  "Motivation", "Podcast", "Animation", "Art", "Nature",
+];
+
 export default function UploadVideoPage() {
   const router = useRouter();
   const [step, setStep] = useState<"upload" | "details" | "done">("upload");
@@ -43,6 +52,7 @@ export default function UploadVideoPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isShort, setIsShort] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
@@ -116,25 +126,22 @@ export default function UploadVideoPage() {
       videoURL: videoUrl,
       thumbnailURL: thumbnailUrl || undefined,
       category: category || undefined,
+      tags: selectedTags.length > 0 ? selectedTags : undefined,
       isShort,
     });
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-background border-b border-border">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href="/feed" className="text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <h1 className="text-lg font-semibold tracking-tight">
+    <div className="py-6 min-h-screen w-full">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Page title */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold tracking-tight gradient-text">
             {isShort ? "Upload Short" : "Upload Video"}
           </h1>
+          <p className="text-muted-foreground text-sm mt-1">Share your content with the world</p>
         </div>
-      </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Progress Steps */}
         <div className="flex items-center justify-center gap-4 mb-8">
           <div className={`flex items-center gap-2 ${step === "upload" ? "text-primary" : "text-muted-foreground"}`}>
@@ -173,6 +180,14 @@ export default function UploadVideoPage() {
                 <p className="text-sm text-muted-foreground">
                   Upload a video file (max 512MB, recommended 3-5 minutes for demo)
                 </p>
+
+                {isShort && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-amber-600 dark:text-amber-400">Shorts tip:</strong> Upload in vertical format <strong className="text-foreground">1080×1920</strong> (9:16 ratio) for the best experience.
+                    </p>
+                  </div>
+                )}
                 
                 {/* Upload Button - Alternative */}
                 <div className="flex flex-col items-center gap-4">
@@ -280,6 +295,23 @@ export default function UploadVideoPage() {
                       />
                     </div>
 
+                    {isShort && (
+                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+                        <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                          <Zap className="h-4 w-4" />
+                          <span className="text-sm font-medium">Shorts Format Recommendation</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          For the best viewing experience, upload your short in <strong className="text-foreground">vertical format (9:16)</strong> with a resolution of <strong className="text-foreground">1080×1920</strong> pixels. Videos not in this format will be letterboxed to fit the vertical player.
+                        </p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">📐 9:16 aspect ratio</span>
+                          <span className="flex items-center gap-1">📏 1080×1920px</span>
+                          <span className="flex items-center gap-1">⏱️ Under 60 seconds</span>
+                        </div>
+                      </div>
+                    )}
+
                     <div>
                       <Label htmlFor="category">Category</Label>
                       <Select value={category} onValueChange={setCategory}>
@@ -294,6 +326,45 @@ export default function UploadVideoPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    {/* Tags */}
+                    <div>
+                      <Label className="flex items-center gap-2 mb-2">
+                        <Tag className="h-4 w-4 text-primary" />
+                        Tags <span className="text-xs text-muted-foreground">(select up to 5)</span>
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {availableTags.map((tag) => {
+                          const isSelected = selectedTags.includes(tag);
+                          return (
+                            <Badge
+                              key={tag}
+                              variant={isSelected ? "default" : "outline"}
+                              className={`cursor-pointer transition-all text-xs ${
+                                isSelected
+                                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                  : "hover:bg-accent hover:text-accent-foreground"
+                              } ${!isSelected && selectedTags.length >= 5 ? "opacity-40 cursor-not-allowed" : ""}`}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedTags(selectedTags.filter((t) => t !== tag));
+                                } else if (selectedTags.length < 5) {
+                                  setSelectedTags([...selectedTags, tag]);
+                                }
+                              }}
+                            >
+                              {tag}
+                              {isSelected && <X className="h-3 w-3 ml-1" />}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                      {selectedTags.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Selected: {selectedTags.join(", ")}
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -434,9 +505,12 @@ export default function UploadVideoPage() {
           <Card className="text-center py-12">
             <CardContent>
               <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Video Published!</h2>
-              <p className="text-muted-foreground mb-4">
-                Your video has been uploaded successfully and is now live.
+              <h2 className="text-xl font-semibold mb-2">Video Uploaded!</h2>
+              <p className="text-muted-foreground mb-2">
+                Your video has been uploaded successfully.
+              </p>
+              <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">
+                AI moderation is reviewing your content. It will appear on the feed once approved.
               </p>
               <p className="text-sm text-muted-foreground">
                 Redirecting to your video...
@@ -444,7 +518,7 @@ export default function UploadVideoPage() {
             </CardContent>
           </Card>
         )}
-      </main>
+      </div>
     </div>
   );
 }
