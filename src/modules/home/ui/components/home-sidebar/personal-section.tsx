@@ -44,7 +44,7 @@ export const PersonalSection = () => {
                                     tooltip={item.title}
                                     asChild
                                     isActive={isActive}
-                                    className={`neptune-nav-item group/nav ${
+                                    className={`neptube-nav-item group/nav ${
                                         isActive ? "neptube-nav-active" : ""
                                     }`}
                                     onClick={(e) => {
