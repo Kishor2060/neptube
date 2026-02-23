@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { trpc } from "@/trpc/client";
 import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -186,6 +187,8 @@ export default function LivePage() {
     }
   }, [startCamera]);
 
+  const notifySubscribers = trpc.subscriptions.notifySubscribersLive.useMutation();
+
   const goLive = useCallback(() => {
     if (!streamTitle.trim()) {
       toast.error("Please enter a stream title before going live.");
@@ -213,6 +216,18 @@ export default function LivePage() {
       }
     }
 
+    // Notify all subscribers that we're going live
+    notifySubscribers.mutate(
+      { streamTitle: streamTitle.trim() },
+      {
+        onSuccess: (data) => {
+          if (data.notified > 0) {
+            toast.success(`Notified ${data.notified} subscriber${data.notified > 1 ? "s" : ""} that you're live!`);
+          }
+        },
+      }
+    );
+
     setStreamState("live");
     setElapsedTime(0);
     setViewerCount(1);
@@ -227,7 +242,7 @@ export default function LivePage() {
       },
     ]);
     toast.success("You are now LIVE! 🔴");
-  }, [streamTitle]);
+  }, [streamTitle, notifySubscribers]);
 
   const endStream = useCallback(() => {
     // Save stats before clearing

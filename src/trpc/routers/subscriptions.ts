@@ -100,4 +100,35 @@ export const subscriptionsRouter = createTRPCRouter({
         return { subscribed: true };
       }
     }),
+
+  // Notify all subscribers that channel is going live
+  notifySubscribersLive: protectedProcedure
+    .input(
+      z.object({
+        streamTitle: z.string().min(1).max(200),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Get all subscribers of the current user's channel
+      const subs = await ctx.db
+        .select({ subscriberId: subscriptions.subscriberId })
+        .from(subscriptions)
+        .where(eq(subscriptions.channelId, ctx.user.id));
+
+      if (subs.length === 0) return { notified: 0 };
+
+      // Create a notification for each subscriber
+      const notificationValues = subs.map((sub) => ({
+        userId: sub.subscriberId,
+        type: "new_video" as const,
+        title: "🔴 Live Now!",
+        message: `${ctx.user.name} is now live: ${input.streamTitle}`,
+        link: `/feed/live`,
+        fromUserId: ctx.user.id,
+      }));
+
+      await ctx.db.insert(notifications).values(notificationValues).catch(() => {});
+
+      return { notified: subs.length };
+    }),
 });

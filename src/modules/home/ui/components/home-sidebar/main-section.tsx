@@ -8,7 +8,7 @@ import {
     SidebarMenuButton , 
     SidebarMenuItem 
 } from "@/components/ui/sidebar";
-import { TrendingUp, Home, Zap, Users, Radio, Compass } from "lucide-react"
+import { TrendingUp, Home, Zap, Users, Radio, Compass, UserCheck } from "lucide-react"
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -17,6 +17,7 @@ import { useAuth, useClerk } from "@clerk/nextjs";
 const items = [
     { title:"Home", url:"/", icon:Home, color:"from-violet-500 to-indigo-500", badge: null },
     { title:"Shorts", url:"/shorts", icon:Zap, color:"from-amber-500 to-orange-500", badge: null },
+    { title:"Subscriptions", url:"/feed/subscriptions", icon:UserCheck, color:"from-pink-500 to-fuchsia-500", badge: null, auth:true },
     { title:"Live", url:"/feed/live", icon:Radio, color:"from-rose-500 to-pink-500", badge: "NEW", auth:true },
     { title:"Trending", url:"/feed/trending", icon:TrendingUp, color:"from-emerald-500 to-teal-500", badge: null },
     { title:"Explore", url:"/community", icon:Compass, color:"from-sky-500 to-cyan-500", badge: null, auth:true },
